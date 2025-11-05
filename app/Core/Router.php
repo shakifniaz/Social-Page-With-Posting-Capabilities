@@ -15,7 +15,7 @@ class Router {
     public function dispatch(string $uri, string $method): void {
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
         $callback = $this->routes[$method][$path] ?? null;
-
+        
         if (!$callback) {
             http_response_code(404);
             echo "<h1>404 Not Found</h1>";

@@ -15,7 +15,7 @@
     </header>
 
     <main>
-        <?= $content ?? '' ?>
+        <?php echo $content ; ?>
     </main>
 
     <footer>
