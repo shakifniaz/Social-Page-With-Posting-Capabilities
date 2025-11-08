@@ -1,41 +1,46 @@
 <?php
-declare(strict_types=1);
 
-// autoload
-require __DIR__ . '/../vendor/autoload.php';
-
-// tiny .env loader (reads .env into getenv and $_ENV)
-$envFile = __DIR__ . '/../.env';
-if (file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue;
-        [$key, $val] = array_map('trim', explode('=', $line, 2) + [1=>null]);
-        if ($key && $val !== null) {
-            putenv("$key=$val");
-            $_ENV[$key] = $val;
-        }
-    }
-}
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../helpers.php';
 
 use App\Core\Router;
 use App\Core\Session;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
+use App\Controllers\PostController;
 
 Session::start();
 
 $router = new Router();
-$auth = new AuthController();
-$dash = new DashboardController();
 
-$router->get('/', fn() => $auth->showLogin());
-$router->get('/login', fn() => $auth->showLogin());
-$router->get('/register', fn() => $auth->showRegister());
-$router->get('/dashboard', fn() => $dash->index());
+$router->get('/', function() {
+    if (Session::get('user')) {
+        header('Location: /dashboard');
+    } else {
+        header('Location: /login');
+    }
+    exit;
+});
 
-$router->post('/register', fn() => $auth->register());
-$router->post('/login', fn() => $auth->login());
-$router->get('/logout', fn() => $auth->logout());
+$router->get('/login', [AuthController::class, 'showLogin']);
+$router->get('/register', [AuthController::class, 'showRegister']);
+$router->post('/login', [AuthController::class, 'login']);
+$router->post('/register', [AuthController::class, 'register']);
+$router->get('/logout', [AuthController::class, 'logout']);
 
-$router->dispatch($_SERVER['REQUEST_URI'] ?? '/', $_SERVER['REQUEST_METHOD'] ?? 'GET');
+$router->get('/dashboard', [DashboardController::class, 'index']);
+
+$router->get('/posts', [PostController::class, 'showPosts']);
+$router->get('/posts/create', [PostController::class, 'showCreatePost']);
+$router->post('/posts/create', [PostController::class, 'createPost']);
+$router->post('/posts/delete', [PostController::class, 'deletePost']);
+
+$uri = $_SERVER['REQUEST_URI'];
+$method = $_SERVER['REQUEST_METHOD'];
+
+$basePath = getenv('BASE_PATH') ?: '';
+if ($basePath && strpos($uri, $basePath) === 0) {
+    $uri = substr($uri, strlen($basePath));
+}
+
+$router->dispatch($uri, $method);

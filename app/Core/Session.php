@@ -24,4 +24,8 @@ class Session {
             session_destroy();
         }
     }
+
+    public static function has(string $key): bool {
+        return isset($_SESSION[$key]);
+    }
 }

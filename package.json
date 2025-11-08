@@ -1,0 +1,24 @@
+{
+  "name": "metro_wb_lab",
+  "version": "1.0.0",
+  "description": "PHP version: 8.0+ (tested with PHP 8)\r A small teaching project demonstrating:\r - Registration & Login\r - Sessions\r - Simple Router\r - Namespaces & PSR-4 autoloading (composer)\r - Password hashing (password_hash)\r - Email sending (Mailtrap + PHPMailer)\r - Basic folder structure and simple styling",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nkb-bd/metro_wb_lab.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nkb-bd/metro_wb_lab/issues"
+  },
+  "homepage": "https://github.com/nkb-bd/metro_wb_lab#readme",
+  "devDependencies": {
+    "tailwindcss": "^4.1.17"
+  }
+}

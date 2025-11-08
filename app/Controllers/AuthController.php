@@ -33,7 +33,6 @@ class AuthController extends Controller {
         $hashed = password_hash($password, PASSWORD_BCRYPT);
         User::create($name, $email, $hashed);
 
-        // send welcome email (Mailtrap for dev)
         Mailer::send($email, 'Welcome to AuthBoard', "Hello $name,\n\nThanks for registering at AuthBoard.");
 
         header('Location: /login');
