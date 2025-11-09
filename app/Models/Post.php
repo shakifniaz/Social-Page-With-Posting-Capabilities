@@ -130,4 +130,28 @@ class Post {
         $stmt->execute([$postId, $userId]);
         return (bool)$stmt->fetch();
     }
+
+    public static function getPaginatedWithUsers(int $page = 1, int $perPage = 10): array {
+        $page = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+
+        $stmt = self::connect()->prepare('
+            SELECT p.*, u.name as user_name
+            FROM posts p
+            JOIN users u ON p.user_id = u.id
+            ORDER BY p.created_at DESC
+            LIMIT ? OFFSET ?
+        ');
+        // Use integers explicitly
+        $stmt->bindValue(1, $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(2, $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $posts = $stmt->fetchAll();
+
+        foreach ($posts as &$post) {
+            $post['user_has_liked'] = self::getUserLikeStatus($post['id'], $post['user_id']);
+        }
+
+        return $posts;
+    }
 }

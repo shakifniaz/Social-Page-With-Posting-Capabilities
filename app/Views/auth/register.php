@@ -47,9 +47,40 @@ ob_start();
                         type="password" 
                         autocomplete="new-password" 
                         required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                        class="w-full password px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                         placeholder="Choose a password (min. 6 characters)"
                     >
+                    <div class="mt-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs text-gray-500">Password strength</span>
+                            <span id="passwordStrengthText" class="text-xs font-medium">Weak</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="passwordStrengthBar" class="h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div id="passwordRequirements" class="mt-2 space-y-1">
+                        <div class="flex items-center">
+                            <div id="lengthCheck" class="w-3 h-3 rounded-full border border-gray-300 mr-2"></div>
+                            <span class="text-xs text-gray-600">At least 6 characters</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div id="lowercaseCheck" class="w-3 h-3 rounded-full border border-gray-300 mr-2"></div>
+                            <span class="text-xs text-gray-600">Lowercase letter</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div id="uppercaseCheck" class="w-3 h-3 rounded-full border border-gray-300 mr-2"></div>
+                            <span class="text-xs text-gray-600">Uppercase letter</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div id="numberCheck" class="w-3 h-3 rounded-full border border-gray-300 mr-2"></div>
+                            <span class="text-xs text-gray-600">Number</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div id="specialCheck" class="w-3 h-3 rounded-full border border-gray-300 mr-2"></div>
+                            <span class="text-xs text-gray-600">Special character</span>
+                        </div>
+                    </div>
                     <p id="passwordError" class="mt-1 text-xs text-red-600 hidden">
                         Must be at least 6 characters long
                     </p>
@@ -76,6 +107,60 @@ ob_start();
 </div>
 
 <script>
+function checkPasswordStrength(password) {
+    let strength = 0;
+    const requirements = {
+        length: password.length >= 6,
+        lowercase: /[a-z]/.test(password),
+        uppercase: /[A-Z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    };
+
+    Object.keys(requirements).forEach(key => {
+        const element = document.getElementById(key + 'Check');
+        if (requirements[key]) {
+            element.classList.add('bg-green-500', 'border-green-500');
+            element.classList.remove('bg-gray-300', 'border-gray-300');
+            strength++;
+        } else {
+            element.classList.add('bg-gray-300', 'border-gray-300');
+            element.classList.remove('bg-green-500', 'border-green-500');
+        }
+    });
+
+    const totalRequirements = Object.keys(requirements).length;
+    const strengthPercentage = (strength / totalRequirements) * 100;
+    const strengthBar = document.getElementById('passwordStrengthBar');
+    const strengthText = document.getElementById('passwordStrengthText');
+
+    strengthBar.style.width = strengthPercentage + '%';
+
+    if (strengthPercentage <= 20) {
+        strengthBar.className = 'h-2 rounded-full transition-all duration-300 bg-red-500';
+        strengthText.textContent = 'Very Weak';
+        strengthText.className = 'text-xs font-medium text-red-600';
+    } else if (strengthPercentage <= 40) {
+        strengthBar.className = 'h-2 rounded-full transition-all duration-300 bg-orange-500';
+        strengthText.textContent = 'Weak';
+        strengthText.className = 'text-xs font-medium text-orange-600';
+    } else if (strengthPercentage <= 60) {
+        strengthBar.className = 'h-2 rounded-full transition-all duration-300 bg-yellow-500';
+        strengthText.textContent = 'Fair';
+        strengthText.className = 'text-xs font-medium text-yellow-600';
+    } else if (strengthPercentage <= 80) {
+        strengthBar.className = 'h-2 rounded-full transition-all duration-300 bg-blue-500';
+        strengthText.textContent = 'Good';
+        strengthText.className = 'text-xs font-medium text-blue-600';
+    } else {
+        strengthBar.className = 'h-2 rounded-full transition-all duration-300 bg-green-500';
+        strengthText.textContent = 'Strong';
+        strengthText.className = 'text-xs font-medium text-green-600';
+    }
+
+    return strengthPercentage;
+}
+
 document.getElementById('registerForm').addEventListener('submit', function(e) {
     const password = document.getElementById('password').value;
     const passwordError = document.getElementById('passwordError');
@@ -90,12 +175,40 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
 });
 
 document.getElementById('password').addEventListener('input', function() {
+    const password = this.value;
     const passwordError = document.getElementById('passwordError');
-    if (this.value.length >= 6) {
+    
+    if (password.length >= 6) {
         passwordError.classList.add('hidden');
+    } else {
+        passwordError.classList.remove('hidden');
     }
+    
+    checkPasswordStrength(password);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const requirements = ['length', 'lowercase', 'uppercase', 'number', 'special'];
+    requirements.forEach(req => {
+        const element = document.getElementById(req + 'Check');
+        element.classList.add('bg-gray-300', 'border-gray-300');
+    });
 });
 </script>
+
+<style>
+#passwordStrengthBar {
+    transition: all 0.3s ease;
+}
+
+#lengthCheck,
+#lowercaseCheck,
+#uppercaseCheck,
+#numberCheck,
+#specialCheck {
+    transition: all 0.3s ease;
+}
+</style>
 <?php
 $content = ob_get_clean();
 include __DIR__ . '/../layout.php';
