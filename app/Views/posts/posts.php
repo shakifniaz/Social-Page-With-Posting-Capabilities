@@ -41,7 +41,9 @@ ob_start();
                     <?php endif; ?>
                     
                     <div class="post-interactions">
-                        <button class="like-btn <?= $post['user_has_liked'] ? 'liked' : '' ?>" data-post-id="<?= $post['id'] ?>">
+                        <button class="like-btn <?= $post['user_has_liked'] ? 'liked' : '' ?>" 
+                                data-post-id="<?= $post['id'] ?>" 
+                                title="Like">
                             <svg class="like-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="<?= $post['user_has_liked'] ? 'currentColor' : 'none' ?>" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
@@ -56,49 +58,158 @@ ob_start();
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Setting up like buttons with animations...');
+    console.log('Like system initialized for Posts page');
     
-    document.querySelectorAll('.like-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const likeIcon = this.querySelector('.like-icon');
-            const likeCount = this.querySelector('.like-count');
+    let isProcessing = false;
+    
+    function setupLikeButtons() {
+        const likeButtons = document.querySelectorAll('.like-btn');
+        console.log(`Found ${likeButtons.length} like buttons`);
+        
+        likeButtons.forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
             
-            console.log('Like button clicked for post:', this.getAttribute('data-post-id'));
+            newButton.addEventListener('click', handleLikeClick);
+        });
+    }
+    
+    async function handleLikeClick(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (isProcessing) {
+            console.log('Already processing a like, skipping...');
+            return;
+        }
+        
+        const button = event.currentTarget;
+        const postId = button.getAttribute('data-post-id');
+        
+        console.log(`Processing like for post ${postId}`);
+        
+        isProcessing = true;
+        button.disabled = true;
+        
+        const isCurrentlyLiked = button.classList.contains('liked');
+        const likeCountElement = button.querySelector('.like-count');
+        const currentCount = parseInt(likeCountElement.textContent) || 0;
+        
+        if (isCurrentlyLiked) {
+            button.classList.remove('liked');
+            likeCountElement.textContent = currentCount - 1;
+        } else {
+            button.classList.add('liked');
+            likeCountElement.textContent = currentCount + 1;
+        }
+        
+        button.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            button.style.transform = 'scale(1)';
+        }, 200);
+
+        try {
+            const formData = new FormData();
+            formData.append('post_id', postId);
             
-            const isLiked = this.classList.contains('liked');
+            console.log('Sending like request to /posts/like...');
             
-            if (isLiked) {
-                this.classList.remove('liked');
-                likeIcon.setAttribute('fill', 'none');
-                likeCount.textContent = parseInt(likeCount.textContent) - 1;
-            } else {
-                this.classList.add('liked');
-                likeIcon.setAttribute('fill', 'currentColor');
-                likeCount.textContent = parseInt(likeCount.textContent) + 1;
+            const response = await fetch('/posts/like', {
+                method: 'POST',
+                body: formData
+            });
+            
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            this.style.transform = 'scale(1.2)';
-            setTimeout(() => {
-                this.style.transform = 'scale(1)';
-            }, 200);
+            const result = await response.json();
+            console.log('Server response:', result);
             
-            likeIcon.style.transform = 'scale(1.3)';
-            setTimeout(() => {
-                likeIcon.style.transform = 'scale(1)';
-            }, 200);
-        });
-    });
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    const likeButtons = document.querySelectorAll('.like-btn');
-    console.log('Found like buttons in posts page:', likeButtons.length);
-    likeButtons.forEach(btn => {
-        console.log('Like button for post:', btn.getAttribute('data-post-id'));
-    });
+            if (result.success) {
+                console.log(`Successfully ${result.liked ? 'liked' : 'unliked'} post ${postId}. New count: ${result.likes}`);
+                
+            } else {
+                throw new Error(result.message || 'Unknown server error');
+            }
+            
+        } catch (error) {
+            console.error('Error updating like:', error);
+            
+            if (isCurrentlyLiked) {
+                button.classList.add('liked');
+                likeCountElement.textContent = currentCount;
+            } else {
+                button.classList.remove('liked');
+                likeCountElement.textContent = currentCount;
+            }
+            
+            alert('Failed to update like: ' + error.message);
+        } finally {
+            isProcessing = false;
+            button.disabled = false;
+            
+            const isLiked = button.classList.contains('liked');
+            const currentCount = likeCountElement.textContent;
+            
+            button.innerHTML = `
+                <svg class="like-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span class="like-count">${currentCount}</span>
+            `;
+        }
+    }
+    
+    function startRealTimeUpdates() {
+        setInterval(async () => {
+            if (isProcessing) return;
+            
+            const postIds = Array.from(document.querySelectorAll('.like-btn'))
+                .map(btn => btn.getAttribute('data-post-id'))
+                .filter(id => id);
+            
+            if (postIds.length === 0) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('post_ids', JSON.stringify(postIds));
+                
+                const response = await fetch('/posts/get-likes', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success && result.likes) {
+                        result.likes.forEach(likeData => {
+                            const buttons = document.querySelectorAll(`.like-btn[data-post-id="${likeData.post_id}"]`);
+                            
+                            buttons.forEach(button => {
+                                const likeCount = button.querySelector('.like-count');
+                                if (likeCount && likeCount.textContent !== likeData.likes.toString()) {
+                                    likeCount.textContent = likeData.likes;
+                                }
+                            });
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Error updating like counts:', error);
+            }
+        }, 5000);
+    }
+    
+    setupLikeButtons();
+    startRealTimeUpdates();
 });
 </script>
 
 <?php
 $content = ob_get_clean();
 include __DIR__ . '/../layout.php';
+?>

@@ -13,7 +13,7 @@ class DashboardController extends Controller {
             exit;
         }
         
-        $userPosts = Post::findByUserId($user['id']);
+        $userPosts = Post::findUserPostsWithLikeStatus($user['id']);
         
         $this->view('dashboard.php', [
             'user' => $user,

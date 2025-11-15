@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html class="h-full">
 <head>
@@ -5,6 +6,7 @@
     <title><?= $title ?? 'AuthBoard' ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/assets/style.css">
+    <script src="/assets/like-system.js"></script>
 </head>
 <body class="h-full <?php echo !empty($_SESSION['user']) ? 'logged-in' : ''; ?>">
     <?php if (!empty($_SESSION['user'])): ?>
@@ -48,5 +50,9 @@
     <main class="<?php echo !empty($_SESSION['user']) ? 'main-content' : 'h-full'; ?>">
         <?php echo $content; ?>
     </main>
+
+    <script>
+        console.log('Layout loaded successfully');
+    </script>
 </body>
 </html>
